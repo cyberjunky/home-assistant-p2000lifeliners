@@ -1,0 +1,12 @@
+{
+  "domain": "p2000lifeliners",
+  "name": "P2000 Lifeliners Sensor",
+  "documentation": "https://github.com/cyberjunky/home-assistant-p2000-lifeliners",
+  "dependencies": [],
+  "codeowners": [
+    "@cyberjunky"
+  ],
+  "requirements": [
+    "feedparser"
+  ]
+}
