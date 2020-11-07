@@ -27,13 +27,12 @@ BASE_URL = "http://feeds.feedburner.com/p2000-life-liners"
 DEFAULT_INTERVAL = datetime.timedelta(seconds=10)
 DATA_UPDATED = "p2000_lifeliners_data_updated"
 
+CONF_CONTAINS = "contains"
 CONF_CAPCODES = "capcodes"
 CONF_ATTRIBUTION = "Data provided by www.p2000zhz-rr.nl"
-CONF_CONTAINS = "contains"
 
 DEFAULT_NAME = "P2000 Lifeliners"
 DEFAULT_ICON = "mdi:helicopter"
-
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -52,7 +51,7 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
     """Set up the P2000 sensor."""
     data = P2000Data(hass, config)
     async_track_time_interval(hass, data.async_update, config[CONF_SCAN_INTERVAL])
-    async_add_devices([P2000Sensor(hass, data, config.get(CONF_NAME), config.get(CONF_ICON))], True)
+    async_add_devices([P2000Sensor(hass, data, config)])
 
 
 class P2000Data:
@@ -86,7 +85,7 @@ class P2000Data:
         
     @staticmethod
     def remove_img_tags(data):
-        p = re.compile(r'&lt;.*?&gt;')
+        p = re.compile(r'<img.*?/>')
         return p.sub('', data)
 
     async def async_update(self, dummy):
@@ -110,8 +109,6 @@ class P2000Data:
         if self._feed.bozo:
             _LOGGER.debug("Error parsing feed data from %s", self._url)
             return
-
-        _LOGGER.debug("Feed url: %s data: %s", self._url, self._feed)
 
         if self._restart:
             self._restart = False
@@ -157,19 +154,15 @@ class P2000Data:
 
                 if event_raw:
                     try:
-                        event_text = re.search(r'Melding:(.*?)Korps/Voertuig:', event_raw).group(1).strip()
-                        event_assets = re.search(r'Korps/Voertuig:(.*?)Capcode:', event_raw).group(1).strip()
-                        event_capcodes = re.search(r'Capcode:(.*)</description>', event_raw).group(1).strip()
+                        event = {}
+                        event["eventtext"] = re.search(r'Melding:(.*?)Korps/Voertuig:', event_raw).group(1).strip()
+                        event["eventassets"] = re.search(r'Korps/Voertuig:(.*?)Capcode:', event_raw).group(1).strip()
+                        event["eventcapcodes"] =  re.search(r'Capcode:(.*)', event_raw).group(1).strip()
+                        event["eventtime"] = event_time
+                        _LOGGER.debug("Event: %s", event)
+                        self._data = event
                     except:
                         _LOGGER.debug("An error occured while parsing event: %s", event_raw)
-
-                    event = {}
-                    event["eventtext"] = event_text
-                    event["eventassets"] = event_assets
-                    event["eventcapcodes"] = event_capcodes
-                    event["eventtime"] = event_time
-                    _LOGGER.debug("Event: %s", event)
-                    self._data = event
 
             dispatcher_send(self._hass, DATA_UPDATED)
 
@@ -181,12 +174,13 @@ class P2000Data:
 class P2000Sensor(RestoreEntity):
     """Representation of a P2000 Sensor."""
 
-    def __init__(self, hass, data, name, icon):
+    def __init__(self, hass, data, config):
         """Initialize a P2000 sensor."""
         self._hass = hass
         self._data = data
-        self._name = name
-        self._icon = icon
+        self._name = config.get(CONF_NAME)
+        self._icon = config.get(CONF_ICON)
+
         self._state = None
         self.attrs = {}
 

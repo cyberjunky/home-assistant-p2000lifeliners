@@ -73,12 +73,17 @@ automation:
             {{ trigger.to_state.attributes.friendly_name }} is onderweg naar {{ trigger.to_state.state }}
 ```
 
-Lovelace card example:
+
+## Screenshots
+
+![alt text](https://github.com/cyberjunky/home-assistant-p2000lifeliners/blob/master/screenshots/p2000lifeliners.png?raw=true "Screenshot Sensor")
+
+## Lovelace card example:
 
 ```yaml
 cards:
-      - entity: sensor.p2000lifeliners
-        name: P2000 Lifeliners
+      - entity: sensor.lifeln1_vumc
+        name: P2000 Lifeliner VUmc
         type: sensor
 ```
 
