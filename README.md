@@ -4,7 +4,7 @@
 This is a Custom Component for Home-Assistant (https://home-assistant.io) that tracks P2000 Lifeliners emergency events in The Netherlands.
 
 ## About
-This component queries http://feeds.feedburner.com/p2000-life-liners at the configured interval and applies filters for capcodesrf specified.
+This component queries http://feeds.feedburner.com/p2000-life-liners at the configured interval and applies filters for capcodes specified.
 
 When events are found the P2000 Lifeliners sensor state gets set, which you can use to trigger automation, display sensor data.
 
