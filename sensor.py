@@ -128,7 +128,7 @@ class P2000Data:
                     continue
 
                 self._event_time = event_time
-                event_raw = remove_html_tags(entry.description)
+                event_raw = remove_img_tags(entry.description)
                 _LOGGER.debug("New P2000 Lifeliners event found: %s, at %s", event_raw, entry.published)
 
                 if self._capcodelist:
