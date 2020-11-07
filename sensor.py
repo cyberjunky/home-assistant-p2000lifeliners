@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "http://feeds.feedburner.com/p2000-life-liners"
 
-DEFAULT_INTERVAL = datetime.timedelta(seconds=20)
+DEFAULT_INTERVAL = datetime.timedelta(seconds=10)
 DATA_UPDATED = "p2000_lifeliners_data_updated"
 
 CONF_CAPCODES = "capcodes"
@@ -51,9 +51,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Set up the P2000 sensor."""
     data = P2000Data(hass, config)
-
     async_track_time_interval(hass, data.async_update, config[CONF_SCAN_INTERVAL])
-
     async_add_devices([P2000Sensor(hass, data, config.get(CONF_NAME), config.get(CONF_ICON))], True)
 
 
@@ -123,26 +121,24 @@ class P2000Data:
 
         try:
             for entry in reversed(self._feed.entries):
-
-                event_msg = ""
-                event_caps = ""
+                event_raw = ""
                 event_time = self._convert_time(entry.published)
+
                 if event_time < self._event_time:
                     continue
-                self._event_time = event_time
-                event_raw = entry.title.replace("~", "") + "\n" + entry.published + "\n"
-                _LOGGER.debug("New P2000 Lifeliners event found: %s, at %s", event_msg, entry.published)
 
-                event_msg = self.remove_img_tags(event_raw)
+                self._event_time = event_time
+                event_raw = remove_html_tags(entry.description)
+                _LOGGER.debug("New P2000 Lifeliners event found: %s, at %s", event_raw, entry.published)
 
                 if self._capcodelist:
                     _LOGGER.debug("Filtering on Capcode(s) %s", self._capcodelist)
                     capfound = False
                     for capcode in self._capcodelist:
                         _LOGGER.debug(
-                            "Searching for capcode %s in %s", capcode.strip(), event_caps,
+                            "Searching for capcode %s in %s", capcode.strip(), event_raw,
                         )
-                        if event_caps.find(capcode) != -1:
+                        if event_raw.find(capcode) != -1:
                             _LOGGER.debug("Capcode filter matched")
                             capfound = True
                             break
@@ -153,17 +149,25 @@ class P2000Data:
 
                 if self._contains:
                     _LOGGER.debug("Filtering on Contains string %s", self._contains)
-                    if event_msg.find(self._contains) != -1:
+                    if event_raw.find(self._contains) != -1:
                         _LOGGER.debug("Contains string filter matched")
                     else:
                         _LOGGER.debug("Contains string filter mismatch, discarding")
                         continue
 
-                if event_msg:
+                if event_raw:
+                    try:
+                        event_text = re.search(r'Melding:(.*?)Korps/Voertuig:', event_raw).group(1).strip()
+                        event_assets = re.search(r'Korps/Voertuig:(.*?)Capcode:', event_raw).group(1).strip()
+                        event_capcodes = re.search(r'Capcode:(.*)</description>', event_raw).group(1).strip()
+                    except:
+                        _LOGGER.debug("An error occured while parsing event: %s", event_raw)
+
                     event = {}
-                    event["msgtext"] = event_msg
-                    event["msgtime"] = event_time
-                    event["capcodetext"] = event_caps
+                    event["eventtext"] = event_text
+                    event["eventassets"] = event_assets
+                    event["eventcapcodes"] = event_capcodes
+                    event["eventtime"] = event_time
                     _LOGGER.debug("Event: %s", event)
                     self._data = event
 
@@ -229,8 +233,9 @@ class P2000Sensor(RestoreEntity):
         attrs = {}
         data = self._data.latest_data
         if data:
-            attrs["capcodes"] = data["capcodetext"]
-            attrs["time"] = data["msgtime"]
+            attrs["assets"] = data["eventassets"]
+            attrs["capcodes"] = data["eventcapcodes"]
+            attrs["time"] = data["eventtime"]
             attrs[ATTR_ATTRIBUTION] = CONF_ATTRIBUTION
             self.attrs = attrs
 
@@ -240,5 +245,5 @@ class P2000Sensor(RestoreEntity):
         """Update current values."""
         data = self._data.latest_data
         if data:
-            self._state = data["msgtext"]
+            self._state = data["eventtext"]
             _LOGGER.debug("State updated to %s", self._state)
