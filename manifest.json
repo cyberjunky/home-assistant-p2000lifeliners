@@ -1,7 +1,9 @@
 {
   "domain": "p2000lifeliners",
   "name": "P2000 Lifeliners Sensor",
+  "version": "1.0.0",
   "documentation": "https://github.com/cyberjunky/home-assistant-p2000-lifeliners",
+  "issue_tracker": "https://github.com/cyberjunky/home-assistant-p2000-lifeliners/issues",
   "dependencies": [],
   "codeowners": [
     "@cyberjunky"
